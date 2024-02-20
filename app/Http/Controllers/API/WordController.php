@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class WordController extends Controller
 {
@@ -42,11 +43,13 @@ class WordController extends Controller
 
             $imagePath = null;
             if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('images', 'public'); 
+                $imagePath = $request->file('image')->store('images', 'public');
+                Log::info("Chemin de l'image après stockage: " . $imagePath);
+                $request->merge(['image' => $imagePath]);
             }
-    
+        
             $word = Word::create($request->all());
-    
+        
             return response()->json($word, 201);
         }catch(\Exception $e){
             return response()->json(['message' => $e->getMessage()], 500);
@@ -100,15 +103,21 @@ class WordController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Word $word)
-    {
-        try {
-            $word->delete();
-            return response()->json(null, 204);
-        } catch (\Throwable $th) {
-            return response()->json(['message' => $th->getMessage()], 500);
+ * Remove the specified resource from storage.
+ */
+public function destroy(Word $word)
+{
+    try {
+        if ($word->image && Storage::disk('public')->exists($word->image)) {
+            Storage::disk('public')->delete($word->image);
         }
+
+
+        $word->delete();
+
+        return response()->json(null, 204);
+    } catch (\Throwable $th) {
+        return response()->json(['message' => $th->getMessage()], 500);
     }
+}
 }
