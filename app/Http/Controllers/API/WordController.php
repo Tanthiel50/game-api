@@ -45,7 +45,14 @@ class WordController extends Controller
             $imagePath = uniqid() . '.' . request('image')->extension();
             request('image')->storeAs('public/images', $imagePath);
         
-            $word = Word::create($request->all());
+            $word = Word::create([
+                'term' => $request->term,
+                'definition' => $request->definition,
+                'user_id' => $request->user_id,
+                'image' => $imagePath,
+            
+            ]);
+
             if ($request->has('category_id')) {
             $word->categories()->attach($request->category_id);
             }
@@ -77,22 +84,31 @@ class WordController extends Controller
             $validator = Validator::make($request->all(), [
                 'term' => 'string|unique:words,term,'.$word->id.'|max:255',
                 'definition' => 'string',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'image' => 'nullable|image',
             ]);
     
             if ($validator->fails()) {
-                return response()->json($validator->errors(), 400);
+                return response()->json([
+                    'status' => false,
+                    'message' => $validator->errors(),
+                    'error' => $validator->errors(),
+                ], 400);
             }
 
             $fileName = null;
 
-            if (request('image')) {
-                $file = $request->file('image');
-                $fileName = uniqid() . '.' . $file->extension();
-                $file->storeAs('public/image/', $fileName);
+            if ($request->hasFile('image')) {
+                if ($word->image && Storage::disk('public')->exists('images/' . $word->image)) {
+                    Storage::disk('public')->delete('images/' . $word->image);
+                }
+                // Stockez la nouvelle image et obtenez son nom de fichier
+                $imagePath = $request->file('image')->store('images', 'public');
+                // Extraire le nom du fichier de $imagePath
+                $fileName = basename($imagePath);
+            } else {
+                $fileName = $word->image; // Gardez l'ancienne image si aucune nouvelle image n'est téléchargée
             }
             
-            $word= Word::findOrfail($word-> id);
 
             $word->update([
                 'term' => $request->term,
@@ -116,8 +132,8 @@ class WordController extends Controller
 public function destroy(Word $word)
 {
     try {
-        if ($word->image && Storage::disk('public')->exists($word->image)) {
-            Storage::disk('public')->delete($word->image);
+        if ($word->image && Storage::disk('public')->exists('images/'.$word->image)) {
+            Storage::disk('public')->delete('images/'.$word->image);
         }
 
 
