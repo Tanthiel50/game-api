@@ -75,7 +75,10 @@ class CategorieController extends Controller
                 return response()->json($validator->errors(), 400);
             }
     
-            $categorie->update($request->all());
+            $categorie->update([
+                'name' => $request->name,
+                'description' => $request->description,
+            ]);
             return response()->json($categorie, 200);
         } catch (\Throwable $th) {
             return response()->json(['message' => $th->getMessage()], 500);
