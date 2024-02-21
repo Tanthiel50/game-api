@@ -17,7 +17,8 @@ class WordController extends Controller
     public function index()
     {
         try{
-            $words = Word::all();
+            $words = Word::with(['categories'])
+            ->get();
             return response()->json($words);
         }catch(\Exception $e){
             return response()->json(['message' => $e->getMessage()], 500);
@@ -41,14 +42,13 @@ class WordController extends Controller
                 return response()->json($validator->errors(), 400);
             }
 
-            $imagePath = null;
-            if ($request->hasFile('image')) {
-                $imagePath = $request->file('image')->store('images', 'public');
-                Log::info("Chemin de l'image après stockage: " . $imagePath);
-                $request->merge(['image' => $imagePath]);
-            }
+            $imagePath = uniqid() . '.' . request('image')->extension();
+            request('image')->storeAs('public/images', $imagePath);
         
             $word = Word::create($request->all());
+            if ($request->has('category_id')) {
+            $word->categories()->attach($request->category_id);
+            }
         
             return response()->json($word, 201);
         }catch(\Exception $e){
@@ -84,19 +84,27 @@ class WordController extends Controller
                 return response()->json($validator->errors(), 400);
             }
 
-            if ($request->hasFile('image')) {
-    
-                if ($word->image && Storage::exists($word->image)) {
-                    Storage::delete($word->image);
-                }
-                $imagePath = $request->file('image')->store('images', 'public');
-                $word->image = $imagePath;
+            $fileName = null;
+
+            if (request('image')) {
+                $file = $request->file('image');
+                $fileName = uniqid() . '.' . $file->extension();
+                $file->storeAs('public/image/', $fileName);
             }
-    
-            $word->fill($request->except(['image']));
-            $word->save();
-    
-            return response()->json($word, 200);
+            
+            $word= Word::findOrfail($word-> id);
+
+            $word->update([
+                'term' => $request->term,
+                'definition' => $request->definition,
+                'image' => $fileName ? $fileName : $word->image,
+            ]);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Word updated successfully'
+            ], 200);
+            
         } catch (\Throwable $th) {
             return response()->json(['message' => $th->getMessage()], 500);
         }

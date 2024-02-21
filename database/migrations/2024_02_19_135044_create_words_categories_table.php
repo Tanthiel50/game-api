@@ -16,12 +16,9 @@ return new class extends Migration
             $table->unsignedBigInteger('word_id');
             $table->unsignedBigInteger('category_id');
             $table->timestamps();
-
             $table->foreign('word_id')->references('id')->on('words')->onDelete('cascade');
             $table->foreign('category_id')->references('id')->on('categories')->onDelete('cascade');
-
-
-            $table->unique(['word_id', 'category_id'], 'word_category_unique');
+            $table->primary(['word_id', 'category_id']);
         });
     }
 
