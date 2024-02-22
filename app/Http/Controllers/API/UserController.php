@@ -80,7 +80,6 @@ class UserController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'string|max:255',
             'email' => 'string|email|max:255|unique:users,email,' . $user->id,
-            'password' => 'string|min:8',
             'avatar' => 'nullable|image', 
         ]);
     
@@ -105,7 +104,6 @@ class UserController extends Controller
         $user->update([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
             'avatar' => $fileName ? $fileName : $user->avatar,
         ]);
     
