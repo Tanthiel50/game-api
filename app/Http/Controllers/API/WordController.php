@@ -54,7 +54,7 @@ class WordController extends Controller
             ]);
 
             if ($request->has('category_id')) {
-            $word->categories()->attach($request->category_id);
+            $word->categories()->attach($request->input('category_id', []));
             }
         
             return response()->json($word, 201);
@@ -122,7 +122,11 @@ class WordController extends Controller
             ], 200);
             
         } catch (\Throwable $th) {
-            return response()->json(['message' => $th->getMessage()], 500);
+            return response()->json([
+                'status' => false,
+                'message' => $validator->errors(),
+                'error' => $validator->errors(),
+            ], 400);
         }
     }
 
